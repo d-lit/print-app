@@ -11,4 +11,5 @@
   .print-area .sheet { margin: 0; padding: 0; border: 0; box-shadow: none; transform: none; break-inside: avoid; page-break-inside: avoid; break-after: page; page-break-after: always; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .print-area .sheet:last-child { break-after: auto; page-break-after: auto; }
   .print-area .photo-slot { margin: 0; padding: 0; border: 0; }
+  .print-area .cut-marks { stroke: #666; }
 }

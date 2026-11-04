@@ -8,6 +8,8 @@ export interface Settings {
   height: string
   count: string
   autoRotate: boolean
+  arrangement: 'cut' | 'compact'
+  cutMarks: boolean
 }
 
 interface Props {
@@ -42,7 +44,15 @@ export function SettingsPanel({ settings, onChange, disabled, orientation, longS
           <span className="times">×</span>
           <label htmlFor="photo-height"><span>Высота</span><div className="number-field"><input id="photo-height" type="number" min="0.1" step="0.1" value={settings.height} onChange={event => update({ height: event.target.value })} /><span>мм</span></div></label>
         </div>
-        <p className="control-note">Размер отпечатка. Пропорции снимка сохраняются.</p>
+        <p className="control-note">Размер отпечатка вместе с белыми полями. Без обрезки кадра.</p>
+        <div className="segmented-control arrangement-control" role="group" aria-label="Способ размещения">
+          <button aria-pressed={settings.arrangement === 'cut'} className={settings.arrangement === 'cut' ? 'selected' : ''} onClick={() => update({ arrangement: 'cut' })}>Под резак</button>
+          <button aria-pressed={settings.arrangement === 'compact'} className={settings.arrangement === 'compact' ? 'selected' : ''} onClick={() => update({ arrangement: 'compact' })}>Плотно</button>
+        </div>
+        <p className="control-note arrangement-note">{settings.arrangement === 'cut'
+          ? 'Одна сетка на всех листах: ровные ряды и общие линии реза.'
+          : 'Плотная упаковка: размеры и повороты ячеек могут чередоваться.'}</p>
+        {settings.arrangement === 'cut' && <label className="cut-marks-control"><input type="checkbox" checked={settings.cutMarks} onChange={event => update({ cutMarks: event.target.checked })} /><span>Метки реза</span><small>В предпросмотре и на печати</small></label>}
       </> : <>
         <label className="count-label" htmlFor="photo-count">Количество фотографий на листе</label>
         <div className="count-controls"><div className="number-field"><input id="photo-count" type="number" min="1" max="12" step="1" value={settings.count} onChange={event => update({ count: event.target.value })} /><span>шт.</span></div>
@@ -50,7 +60,9 @@ export function SettingsPanel({ settings, onChange, disabled, orientation, longS
         </div>
         <p className="control-note">{longSide ? `Длинная сторона фото — ${longSide.toLocaleString('ru-RU')} мм.` : 'От 1 до 12. Размер рассчитаем автоматически.'}</p>
       </>}
-      <div className="rotate-control"><div><label htmlFor="auto-rotate"><Icon name="rotate" size={16} />Auto Rotate</label><p>Поворачивать фото для лучшей раскладки</p></div>
+      <div className="rotate-control"><div><label htmlFor="auto-rotate"><Icon name="rotate" size={16} />Auto Rotate</label><p>{settings.mode === 'size' && settings.arrangement === 'cut'
+        ? settings.autoRotate ? 'Поворачивать снимки под общую сетку' : 'Без поворота; возможны широкие белые поля'
+        : 'Поворачивать фото для лучшей раскладки'}</p></div>
         <input className="switch" id="auto-rotate" type="checkbox" role="switch" checked={settings.autoRotate} onChange={event => update({ autoRotate: event.target.checked })} />
       </div>
     </section>

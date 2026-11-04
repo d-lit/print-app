@@ -68,15 +68,15 @@ test('two 100 × 150 mm prints fit A4 on a single page', () => {
   assert.equal(successful(input({ photos: photos(2) })).pages.length, 1)
 })
 
-test('mixed native orientations coexist without forcing a common direction', () => {
-  const layout = successful(input({ photos: photos(3), mode: { kind: 'size', width: 60, height: 90 }, autoRotate: false }))
+test('compact mode keeps mixed native slot orientations', () => {
+  const layout = successful(input({ photos: photos(3), mode: { kind: 'size', width: 60, height: 90, arrangement: 'compact' }, autoRotate: false }))
   assert.equal(layout.pages.length, 1)
   assert.ok(layout.pages[0].placements.some(p => p.width > p.height))
   assert.ok(layout.pages[0].placements.some(p => p.width < p.height))
 })
 
-test('individual auto rotation saves a page on a known mixed set', () => {
-  const value = input({ photos: photos(11), mode: { kind: 'size', width: 40, height: 80 }, autoRotate: false })
+test('individual auto rotation saves a page in compact mode', () => {
+  const value = input({ photos: photos(11), mode: { kind: 'size', width: 40, height: 80, arrangement: 'compact' }, autoRotate: false })
   const off = successful(value)
   const on = successful({ ...value, autoRotate: true })
   assert.equal(off.pages.length, 2)
@@ -170,7 +170,73 @@ test('seeded mixed sets satisfy all invariants in both modes and rotation states
     const set = Array.from({ length: 1 + Math.floor(random() * 50) }, (_, i) => ({ id: `seed-${i}`, widthPx: 200 + Math.floor(random() * 6000), heightPx: 200 + Math.floor(random() * 6000) }))
     for (const autoRotate of [false, true]) {
       successful(input({ photos: set, autoRotate, mode: { kind: 'size', width: 30 + random() * 60, height: 40 + random() * 70 } }))
+      successful(input({ photos: set, autoRotate, mode: { kind: 'size', width: 30 + random() * 60, height: 40 + random() * 70, arrangement: 'compact' } }))
       successful(input({ photos: set, autoRotate, mode: { kind: 'count', count: 1 + Math.floor(random() * 12) } }))
     }
   }
+})
+
+test('size mode defaults to a grid with common cut lines for mixed photos', () => {
+  const layout = successful(input({ photos: photos(17) }))
+  assert.ok(layout.grid)
+  assert.equal(layout.pages.length, 9)
+  const first = layout.pages[0].placements[0]
+  for (const page of layout.pages) {
+    for (const slot of page.placements) {
+      assert.equal(slot.width, first.width)
+      assert.equal(slot.height, first.height)
+    }
+  }
+})
+
+test('17 portrait photos use two upright 100 × 150 slots on landscape A4', () => {
+  const layout = successful(input({ photos: photos(17).map(p => ({ ...p, widthPx: 1712, heightPx: 2288 })) }))
+  assert.equal(layout.orientation, 'landscape')
+  assert.deepEqual(layout.grid, { columns: 2, rows: 1 })
+  const [a, b] = layout.pages[0].placements
+  assert.equal(a.width, 100)
+  assert.equal(a.height, 150)
+  assert.equal(a.rotation, 0)
+  assert.equal(b.rotation, 0)
+  assert.equal(a.y, b.y)
+  assert.equal(b.x - a.x, 103)
+})
+
+test('cut positions stay identical on all pages, including the incomplete last page', () => {
+  const layout = successful(input({ photos: photos(17) }))
+  const template = layout.pages[0].placements.map(({ photoId: _id, rotation: _rotation, ...rect }) => rect)
+  for (const page of layout.pages) {
+    assert.deepEqual(page.placements.map(({ photoId: _id, rotation: _rotation, ...rect }) => rect), template.slice(0, page.placements.length))
+  }
+})
+
+test('grid is centered and separates all rows and columns by the exact gap', () => {
+  const layout = successful(input({ photos: photos(30), mode: { kind: 'size', width: 40, height: 60, arrangement: 'cut' } }))
+  const page = layout.pages[0]
+  const left = Math.min(...page.placements.map(p => p.x))
+  const top = Math.min(...page.placements.map(p => p.y))
+  const right = Math.max(...page.placements.map(p => p.x + p.width))
+  const bottom = Math.max(...page.placements.map(p => p.y + p.height))
+  assert.ok(Math.abs(left - (layout.width - right)) < EPSILON)
+  assert.ok(Math.abs(top - (layout.height - bottom)) < EPSILON)
+  assert.equal(new Set(page.placements.map(p => p.x)).size, layout.grid!.columns)
+  assert.equal(new Set(page.placements.map(p => p.y)).size, layout.grid!.rows)
+})
+
+test('Auto Rotate off keeps images unrotated inside the common grid', () => {
+  const layout = successful(input({ photos: photos(7), autoRotate: false }))
+  const slots = layout.pages.flatMap(p => p.placements)
+  assert.equal(new Set(slots.map(p => `${p.width}x${p.height}`)).size, 1)
+  assert.ok(slots.every(p => p.rotation === 0))
+})
+
+test('grid preserves input photo order across pages', () => {
+  const value = input({ photos: photos(17) })
+  const layout = successful(value)
+  assert.deepEqual(layout.pages.flatMap(p => p.placements.map(slot => slot.photoId)), value.photos.map(photo => photo.id))
+})
+
+test('compact mode remains available without the grid constraint', () => {
+  const layout = successful(input({ mode: { kind: 'size', width: 100, height: 150, arrangement: 'compact' } }))
+  assert.equal(layout.grid, undefined)
 })

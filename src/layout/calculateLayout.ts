@@ -2,6 +2,7 @@ import type { Layout, LayoutInput, LayoutPage, LayoutPhoto, LayoutResult } from 
 import { EPSILON } from './geometry.ts'
 import { packPage, rotationCount } from './pack.ts'
 import type { Slot } from './pack.ts'
+import { gridLayouts, visiblePhotoArea } from './grid.ts'
 
 const positive = (n: number) => Number.isFinite(n) && n > 0
 
@@ -95,15 +96,22 @@ export function calculateLayout(input: LayoutInput): LayoutResult {
   const portraitHeight = Math.max(input.paper.width, input.paper.height)
   if (!input.photos.length) return { ok: true, layout: { width: portraitWidth, height: portraitHeight, orientation: 'portrait', pages: [], longSide: null } }
 
-  const candidates = [
+  const cutGrid = input.mode.kind === 'size' && input.mode.arrangement !== 'compact'
+  const candidates = cutGrid ? [
+    ...gridLayouts(input, portraitWidth, portraitHeight, margin, gap),
+    ...gridLayouts(input, portraitHeight, portraitWidth, margin, gap),
+  ] : [
     layoutAtOrientation(input, portraitWidth, portraitHeight, margin, gap),
     layoutAtOrientation(input, portraitHeight, portraitWidth, margin, gap),
   ].filter((layout): layout is Layout => layout !== null)
+  const visibleAreas = new Map(cutGrid ? candidates.map(layout => [layout, visiblePhotoArea(layout, input.photos)]) : [])
   candidates.sort((a, b) => {
     const primary = input.mode.kind === 'size'
       ? a.pages.length - b.pages.length
       : (b.longSide ?? 0) - (a.longSide ?? 0)
-    return primary || rotations(a) - rotations(b) || Number(a.orientation === 'landscape') - Number(b.orientation === 'landscape')
+    const areaDifference = (visibleAreas.get(b) ?? 0) - (visibleAreas.get(a) ?? 0)
+    const areaScore = Math.abs(areaDifference) > EPSILON ? areaDifference : 0
+    return primary || areaScore || rotations(a) - rotations(b) || Number(a.orientation === 'landscape') - Number(b.orientation === 'landscape')
   })
   if (!candidates.length) return { ok: false, error: {
     code: 'does-not-fit',

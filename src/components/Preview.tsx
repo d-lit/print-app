@@ -11,11 +11,12 @@ interface PreviewProps {
   pageIndex: number
   onPageChange: (index: number) => void
   onAdd: () => void
+  showCutMarks: boolean
 }
 
 const PX_PER_MM = 96 / 25.4
 
-export function Preview({ layout, photos, paperName, pageIndex, onPageChange, onAdd }: PreviewProps) {
+export function Preview({ layout, photos, paperName, pageIndex, onPageChange, onAdd, showCutMarks }: PreviewProps) {
   const viewport = useRef<HTMLDivElement>(null)
   const [available, setAvailable] = useState({ width: 640, height: 640 })
   useEffect(() => {
@@ -44,7 +45,7 @@ export function Preview({ layout, photos, paperName, pageIndex, onPageChange, on
           <span className="dimension dimension-top">{layout.width} мм</span>
           <span className="dimension dimension-side">{layout.height} мм</span>
           <div className="sheet-scaled" style={{ transform: `scale(${scale})` }}>
-            <Sheet width={layout.width} height={layout.height} page={layout.pages[pageIndex]} photos={photos} />
+            <Sheet width={layout.width} height={layout.height} page={layout.pages[pageIndex]} photos={photos} showCutMarks={showCutMarks} />
             {!pageCount && <div className="empty-sheet" style={{ width: `${layout.width}mm`, height: `${layout.height}mm` }}>
               <div className="empty-sheet-content">
                 <div className="empty-photo-icon"><Icon name="image" size={36} /></div>
@@ -58,7 +59,7 @@ export function Preview({ layout, photos, paperName, pageIndex, onPageChange, on
         </div>
       </div>
       <div className="preview-footer">
-        <span className="preview-hint"><Icon name="check" size={15} />{pageCount ? 'Размеры готовы к печати' : 'Автоматическая раскладка'}</span>
+        <span className="preview-hint"><Icon name="check" size={15} />{pageCount ? layout.grid ? `Сетка ${layout.grid.columns} × ${layout.grid.rows} · Под резак` : 'Размеры готовы к печати' : 'Автоматическая раскладка'}</span>
         <nav className="page-navigation" aria-label="Страницы предпросмотра">
           <button className="icon-button" onClick={() => onPageChange(pageIndex - 1)} disabled={pageIndex <= 0 || !pageCount} aria-label="Предыдущая страница"><Icon name="left" size={17} /></button>
           <span aria-live="polite">{pageCount ? pageIndex + 1 : 0}<span className="muted"> / {pageCount}</span></span>

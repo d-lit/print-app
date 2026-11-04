@@ -13,7 +13,7 @@ import type { Layout, LayoutMode } from './types/layout'
 import './App.css'
 import './styles/print.css'
 
-const INITIAL_SETTINGS: Settings = { paperId: 'a4', mode: 'size', width: '100', height: '150', count: '4', autoRotate: true }
+const INITIAL_SETTINGS: Settings = { paperId: 'a4', mode: 'size', width: '100', height: '150', count: '4', autoRotate: true, arrangement: 'cut', cutMarks: true }
 const PAGE_WORDS = { one: 'лист', two: 'листа', few: 'листа', many: 'листов', zero: 'листов', other: 'листа' }
 const pluralRules = new Intl.PluralRules('ru')
 
@@ -30,7 +30,7 @@ function App() {
 
   const result = useMemo(() => {
     const mode: LayoutMode = settings.mode === 'size'
-      ? { kind: 'size', width: Number(settings.width), height: Number(settings.height) }
+      ? { kind: 'size', width: Number(settings.width), height: Number(settings.height), arrangement: settings.arrangement }
       : { kind: 'count', count: Number(settings.count) }
     return calculateLayout({ paper, photos, mode, autoRotate: settings.autoRotate, margin: MARGIN_MM, gap: GAP_MM })
   }, [settings, paper, photos])
@@ -39,6 +39,7 @@ function App() {
   const photoMap = useMemo(() => new Map(photos.map(photo => [photo.id, photo])), [photos])
   const pageIndex = Math.max(0, Math.min(requestedPage, layout.pages.length - 1))
   const canPrint = result.ok && layout.pages.length > 0 && loading === 0
+  const showCutMarks = settings.mode === 'size' && settings.arrangement !== 'compact' && settings.cutMarks !== false
 
   const updateSettings = (next: Settings) => { setSettings(next); setRequestedPage(0); setPrintError('') }
 
@@ -73,7 +74,7 @@ function App() {
       <main className="workspace">
         <div className="workspace-heading"><div><div className="eyebrow">ОТ СНИМКА К ОТПЕЧАТКУ</div><h1>Хорошие моменты. <span>В хорошем формате.</span></h1><p>Ваши фотографии, идеальная раскладка и ничего лишнего.</p></div><span className="local-label">БЕЗ ОБЛАКА.<br />БЕЗ ЛИШНИХ ШАГОВ.</span></div>
         <div className="workspace-grid">
-          <Preview layout={layout} photos={photoMap} paperName={paper.name} pageIndex={pageIndex} onPageChange={setRequestedPage} onAdd={() => inputRef.current?.click()} />
+          <Preview layout={layout} photos={photoMap} paperName={paper.name} pageIndex={pageIndex} onPageChange={setRequestedPage} onAdd={() => inputRef.current?.click()} showCutMarks={showCutMarks} />
           <aside className="settings-panel" aria-label="Настройки печати">
             <section className="photos-section">
               <div className="section-heading"><h2><span className="step-label">01</span>Фотографии <span className="number-badge">{entries.length}</span></h2>{entries.length > 0 && <button className="text-button" onClick={() => { clear(); setPrintError(''); setRequestedPage(0) }} disabled={printing}>Очистить</button>}</div>
@@ -82,7 +83,7 @@ function App() {
               {loading > 0 && <p className="loading-note" role="status">Читаем фотографии: осталось {loading}…</p>}
               {errors.length > 0 && <div className="file-errors" role="alert">{errors.map(error => <div className="file-error" key={error.id}><span>{error.message}</span><button className="icon-button" aria-label="Скрыть ошибку" onClick={() => dismissError(error.id)}><Icon name="close" size={14} /></button></div>)}</div>}
             </section>
-            <SettingsPanel settings={settings} onChange={updateSettings} disabled={printing} orientation={layout.orientation === 'portrait' ? 'Портретная' : 'Альбомная'} longSide={layout.longSide} />
+            <SettingsPanel settings={{ ...INITIAL_SETTINGS, ...settings }} onChange={updateSettings} disabled={printing} orientation={layout.orientation === 'portrait' ? 'Портретная' : 'Альбомная'} longSide={layout.longSide} />
             <div className="print-controls">
               {(!result.ok || printError) && <div className="layout-error" role="alert"><Icon name="alert" size={17} /><span>{printError || (!result.ok ? result.error.message : '')}</span></div>}
               <div className="print-summary"><span>{photos.length} фото <span className="summary-dot">·</span> {layout.pages.length} {PAGE_WORDS[pluralRules.select(layout.pages.length)]}</span><span>{paper.name}<Icon name="arrow" size={14} />{settings.mode === 'size' ? `${settings.width || '—'} × ${settings.height || '—'} мм` : `${settings.count || '—'} на листе`}</span></div>
@@ -94,7 +95,7 @@ function App() {
       </main>
       <footer className="app-footer"><span>Меньше настроек. Больше воспоминаний.</span><span>Сделано для домашней печати <span className="footer-dot">✳</span></span></footer>
     </div>
-    <PrintArea ref={printRef} layout={layout} photos={photoMap} ready={canPrint} />
+    <PrintArea ref={printRef} layout={layout} photos={photoMap} ready={canPrint} showCutMarks={showCutMarks} />
   </>
 }
 

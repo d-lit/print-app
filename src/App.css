@@ -27,6 +27,7 @@ h1 span { color: #8c9587; font-weight: 400; }
 .sheet { position: relative; background: #fff; overflow: hidden; flex: none; }
 .photo-slot { position: absolute; overflow: hidden; background: white; }
 .photo-slot img { position: absolute; left: 50%; top: 50%; display: block; object-fit: contain; max-width: none; }
+.cut-marks { position: absolute; top: 0; left: 0; pointer-events: none; fill: none; stroke: #73796e; stroke-width: .12; }
 .dimension { position: absolute; color: #919c89; font-size: 11px; letter-spacing: .4px; white-space: nowrap; }
 .dimension-top { top: -25px; left: 50%; transform: translateX(-50%); }
 .dimension-top::before, .dimension-top::after { content: ''; position: absolute; top: 50%; width: 28px; height: 1px; background: #cbd4c4; }
@@ -103,6 +104,11 @@ select { width: 100%; min-height: 39px; background: #fff; border: 1px solid #dfe
 .count-presets button { min-width: 0; flex: 1; border: 1px solid #e0e7d9; background: #fff; color: #7e8c73; font-size: 11px; border-radius: 5px; }
 .count-presets button.active { background: #eef3e8; border-color: #afc2a3; color: #3b5e2c; }
 .rotate-control { margin-top: 21px; padding-top: 18px; border-top: 1px solid #eff2ea; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.arrangement-control { margin: 15px 0 0; }
+.arrangement-note { margin-top: 7px; }
+.cut-marks-control { display: flex; align-items: center; gap: 7px; margin-top: 12px; color: #5f6d55; font-size: 11px; cursor: pointer; flex-wrap: wrap; }
+.cut-marks-control input { accent-color: var(--green); width: 14px; height: 14px; margin: 0; }
+.cut-marks-control small { font-size: 9px; color: #8d9880; margin-left: auto; }
 .rotate-control label { display: flex; align-items: center; gap: 7px; font-size: 11px; color: #5f6d55; cursor: pointer; }
 .rotate-control p { font-size: 10px; color: #7e8a72; margin-top: 6px; line-height: 1.6; }
 .switch { flex-shrink: 0; appearance: none; width: 31px; height: 18px; border-radius: 20px; background: #d8ded2; position: relative; cursor: pointer; margin: 0; border: 0; }

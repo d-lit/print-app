@@ -5,7 +5,7 @@ export interface LayoutPhoto {
 }
 
 export type LayoutMode =
-  | { kind: 'size'; width: number; height: number }
+  | { kind: 'size'; width: number; height: number; arrangement?: 'cut' | 'compact' }
   | { kind: 'count'; count: number }
 
 export interface LayoutInput {
@@ -36,6 +36,7 @@ export interface Layout {
   orientation: 'portrait' | 'landscape'
   pages: LayoutPage[]
   longSide: number | null
+  grid?: { columns: number; rows: number }
 }
 
 export type LayoutResult =
