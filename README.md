@@ -25,6 +25,32 @@ yarn preview      # локальная проверка production-сборки
 
 Тесты используют встроенные возможности Node.js и запускаются без дополнительного тестового фреймворка. Runtime-зависимости — только React и React DOM.
 
+## GitHub Pages
+
+Workflow [.github/workflows/pages.yml](.github/workflows/pages.yml) устанавливает Node.js 24 и Yarn Classic 1.22.22, загружает зависимости строго по `yarn.lock`, запускает тесты, линтинг и production-сборку. При ошибке проверки публикация не выполняется.
+
+Для первого размещения:
+
+1. В репозитории откройте **Settings → Pages → Build and deployment** и выберите **Source: GitHub Actions**.
+2. Отправьте изменения в `main`. Можно также открыть **Actions → GitHub Pages → Run workflow**, выбрав ветку `main`.
+3. После успешного задания **Deploy to GitHub Pages** откройте URL из environment `github-pages` или раздела **Settings → Pages**. Для текущего репозитория стандартный адрес — `https://d-lit.github.io/print-app/`.
+
+Pull request в `main` проходит проверки и сборку без публикации. Ручной запуск для другой ветки также выполняет только проверки и сборку. Отдельная ветка `gh-pages`, персональные токены и пользовательские secrets не нужны: workflow использует стандартный `GITHUB_TOKEN` с правом записи Pages только в задании публикации.
+
+Базовый путь Vite берётся из `actions/configure-pages`: проектный сайт собирается для `/print-app/`, сайт в корне или на собственном домене — для `/`. Favicon также учитывает базовый путь. Локальная разработка по умолчанию использует `/`.
+
+Проверить сборку для подпапки локально:
+
+```sh
+VITE_BASE_PATH=/print-app/ yarn build
+VITE_BASE_PATH=/print-app/ yarn preview
+# Откройте http://localhost:4173/print-app/
+```
+
+Публикуется только каталог `dist/`. Загруженные пользователем фотографии остаются в его браузере и в workflow не попадают.
+
+Официальные инструкции: [GitHub Pages с custom workflow](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages) и [Vite на GitHub Pages](https://vite.dev/guide/static-deploy.html#github-pages).
+
 ## Рабочее окно
 
 На desktop приложение занимает всю ширину и высоту окна: список фотографий слева, предпросмотр по центру, параметры печати справа. Обе боковые панели заполняют рабочую высоту под шапкой и прокручиваются независимо. Кнопка печати закреплена снизу справа и остаётся доступной при длинном списке настроек. На узких экранах блоки располагаются вертикально.
