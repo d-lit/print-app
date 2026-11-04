@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 
-export type IconName = 'logo' | 'upload' | 'plus' | 'close' | 'left' | 'right' | 'print' | 'check' | 'image' | 'rotate' | 'arrow' | 'alert'
+export type IconName = 'logo' | 'upload' | 'plus' | 'close' | 'left' | 'right' | 'up' | 'down' | 'print' | 'check' | 'image' | 'rotate' | 'arrow' | 'alert'
 
 const paths: Record<IconName, ReactNode> = {
   logo: <><rect x="3" y="3" width="18" height="18" rx="4" /><path d="M8 3v18M8 10h13" /></>,
@@ -9,6 +9,8 @@ const paths: Record<IconName, ReactNode> = {
   close: <path d="m6 6 12 12M6 18 18 6" />,
   left: <path d="m14 6-6 6 6 6" />,
   right: <path d="m10 6 6 6-6 6" />,
+  up: <path d="m6 14 6-6 6 6" />,
+  down: <path d="m6 10 6 6 6-6" />,
   print: <><path d="M7 8V3h10v5M7 17H4V9h16v8h-3M7 14h10v7H7z" /><path d="M17 11h.01" /></>,
   check: <path d="m5 12 4 4L19 6" />,
   image: <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8" cy="8" r="1.5" /><path d="m3 17 6-6 4 4 3-3 5 5" /></>,

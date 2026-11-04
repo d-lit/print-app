@@ -4,8 +4,12 @@ export interface LayoutPhoto {
   heightPx: number
 }
 
+export type ImageFit = 'contain' | 'cover' | 'natural'
+export type CutMarkStyle = 'corners' | 'dashed'
+export type ImageAlignment = 'center' | 'start'
+
 export type LayoutMode =
-  | { kind: 'size'; width: number; height: number; arrangement?: 'cut' | 'compact' }
+  | { kind: 'size'; width: number; height: number; arrangement?: 'cut' | 'compact'; fit?: ImageFit }
   | { kind: 'count'; count: number }
 
 export interface LayoutInput {
@@ -15,6 +19,7 @@ export interface LayoutInput {
   autoRotate: boolean
   margin?: number
   gap?: number
+  preserveOrder?: boolean
 }
 
 export interface Placement {
@@ -37,6 +42,8 @@ export interface Layout {
   pages: LayoutPage[]
   longSide: number | null
   grid?: { columns: number; rows: number }
+  fit?: ImageFit
+  imageAlignment?: ImageAlignment
 }
 
 export type LayoutResult =

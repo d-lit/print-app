@@ -1,6 +1,8 @@
 :root {
   font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-  color: #27332c;
+  color: #26352c;
+  font-size: 14px;
+  line-height: 1.5;
   background: #f8f9f6;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -9,7 +11,11 @@
   font-optical-sizing: auto;
   --green: #2c5e49;
   --green-dark: #214b39;
-  --muted: #899087;
+  --text-primary: #26352c;
+  --text-secondary: #485940;
+  --text-muted: #57664f;
+  --muted: var(--text-muted);
+  --panel-bar-height: 56px;
   --border: #e4e8e1;
 }
 

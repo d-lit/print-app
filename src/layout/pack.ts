@@ -48,13 +48,13 @@ function compareScore(a: number[], b: number[]): number {
 
 function packOrdered(
   slots: readonly Slot[], width: number, height: number,
-  margin: number, gap: number, autoRotate: boolean,
+  margin: number, gap: number, autoRotate: boolean, preserveOrder: boolean,
 ): PackedPage {
   // Inflating both the bin and slots adds internal gaps without charging a gap at the sheet edge.
   let free: Rect[] = [{ x: margin, y: margin, width: width - 2 * margin + gap, height: height - 2 * margin + gap }]
   const placements: Placement[] = []
   const remaining: Slot[] = []
-  for (const slot of slots) {
+  for (const [index, slot] of slots.entries()) {
     let best: { rect: Rect; rotation: 0 | 90; score: number[] } | undefined
     for (const rect of free) {
       for (const rotation of (autoRotate ? [0, 90] : [0]) as (0 | 90)[]) {
@@ -71,6 +71,10 @@ function packOrdered(
     }
     if (!best) {
       remaining.push(slot)
+      if (preserveOrder) {
+        remaining.push(...slots.slice(index + 1))
+        break
+      }
       continue
     }
     placements.push({
@@ -95,9 +99,9 @@ function footprint(placements: readonly Placement[]): number {
 
 export function packPage(
   slots: readonly Slot[], width: number, height: number,
-  margin: number, gap: number, autoRotate: boolean,
+  margin: number, gap: number, autoRotate: boolean, preserveOrder = false,
 ): PackedPage {
-  const strategies = [
+  const strategies = preserveOrder ? [[...slots].sort((a, b) => a.order - b.order)] : [
     [...slots].sort((a, b) => a.order - b.order),
     [...slots].sort((a, b) => b.width * b.height - a.width * a.height || a.order - b.order),
     [...slots].sort((a, b) => Math.max(b.width, b.height) - Math.max(a.width, a.height) || a.order - b.order),
@@ -105,7 +109,7 @@ export function packPage(
   let best: PackedPage | undefined
   for (const ordered of strategies) {
     for (const allowRotation of autoRotate ? [false, true] : [false]) {
-      const result = packOrdered(ordered, width, height, margin, gap, allowRotation)
+      const result = packOrdered(ordered, width, height, margin, gap, allowRotation, preserveOrder)
       if (!best || compareScore(
         [-result.placements.length, rotationCount(result.placements), footprint(result.placements)],
         [-best.placements.length, rotationCount(best.placements), footprint(best.placements)],

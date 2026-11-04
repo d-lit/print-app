@@ -36,14 +36,21 @@ function checkInvariants(value: LayoutInput, layout: Layout) {
       assert.ok(placement.y + placement.height <= layout.height - margin + EPSILON)
       assert.ok(placement.rotation === 0 || placement.rotation === 90)
       if (!value.autoRotate) assert.equal(placement.rotation, 0)
-      if (value.mode.kind === 'size') {
+      if (value.mode.kind === 'size' && value.mode.fit !== 'natural') {
         assert.deepEqual([placement.width, placement.height].sort((a, b) => a - b).map(n => Math.round(n * 1e6)),
           [value.mode.width, value.mode.height].sort((a, b) => a - b).map(n => Math.round(n * 1e6)))
       } else {
         const source = value.photos.find(p => p.id === placement.photoId)!
         const ratio = placement.rotation === 90 ? placement.height / placement.width : placement.width / placement.height
         assert.ok(Math.abs(ratio - source.widthPx / source.heightPx) < EPSILON)
-        assert.ok(Math.abs(Math.max(placement.width, placement.height) - layout.longSide!) < EPSILON)
+        if (value.mode.kind === 'count') {
+          assert.ok(Math.abs(Math.max(placement.width, placement.height) - layout.longSide!) < EPSILON)
+        } else {
+          const [small, large] = [placement.width, placement.height].sort((a, b) => a - b)
+          const [maxSmall, maxLarge] = [value.mode.width, value.mode.height].sort((a, b) => a - b)
+          assert.ok(small <= maxSmall + EPSILON && large <= maxLarge + EPSILON)
+          assert.ok(Math.abs(small - maxSmall) < EPSILON || Math.abs(large - maxLarge) < EPSILON, 'Natural prints must not shrink to pack more photos')
+        }
       }
     }
     for (let i = 0; i < page.placements.length; i++) {
@@ -171,6 +178,9 @@ test('seeded mixed sets satisfy all invariants in both modes and rotation states
     for (const autoRotate of [false, true]) {
       successful(input({ photos: set, autoRotate, mode: { kind: 'size', width: 30 + random() * 60, height: 40 + random() * 70 } }))
       successful(input({ photos: set, autoRotate, mode: { kind: 'size', width: 30 + random() * 60, height: 40 + random() * 70, arrangement: 'compact' } }))
+      for (const arrangement of ['cut', 'compact'] as const) {
+        successful(input({ photos: set, autoRotate, gap: [0, 5, 10][sample % 3], mode: { kind: 'size', width: 60, height: 90, arrangement, fit: 'natural' } }))
+      }
       successful(input({ photos: set, autoRotate, mode: { kind: 'count', count: 1 + Math.floor(random() * 12) } }))
     }
   }
@@ -240,3 +250,56 @@ test('compact mode remains available without the grid constraint', () => {
   const layout = successful(input({ mode: { kind: 'size', width: 100, height: 150, arrangement: 'compact' } }))
   assert.equal(layout.grid, undefined)
 })
+
+for (const arrangement of ['cut', 'compact'] as const) {
+  test(`${arrangement}: crop and white-padding policies preserve exact requested print dimensions`, () => {
+    for (const fit of ['contain', 'cover'] as const) {
+      const layout = successful(input({ photos: photos(7).map(p => ({ ...p, widthPx: 1712, heightPx: 2288 })), mode: { kind: 'size', width: 100, height: 150, arrangement, fit } }))
+      assert.equal(layout.fit, fit)
+    }
+  })
+
+  test(`${arrangement}: natural prints use source bounds instead of padded 100 × 150 frames`, () => {
+    for (const autoRotate of [false, true]) {
+      const layout = successful(input({ photos: photos(17).map(p => ({ ...p, widthPx: 600, heightPx: 800 })), autoRotate, mode: { kind: 'size', width: 100, height: 150, arrangement, fit: 'natural' } }))
+      for (const p of layout.pages.flatMap(page => page.placements)) {
+        assert.ok(Math.abs(Math.min(p.width, p.height) - 100) < EPSILON)
+        assert.ok(Math.abs(Math.max(p.width, p.height) - 400 / 3) < EPSILON)
+      }
+    }
+  })
+}
+
+test('zero gap allows four natural 3:4 prints on A4 without padded cells', () => {
+  const layout = successful(input({ photos: photos(4).map(p => ({ ...p, widthPx: 600, heightPx: 800 })), gap: 0, mode: { kind: 'size', width: 100, height: 150, fit: 'natural' } }))
+  assert.equal(layout.pages.length, 1)
+  assert.deepEqual(layout.grid, { columns: 2, rows: 2 })
+})
+
+test('adjustable 10 mm gaps separate finished prints and keep their physical size', () => {
+  const layout = successful(input({ photos: photos(17).map(p => ({ ...p, widthPx: 600, heightPx: 800 })), gap: 10 }))
+  const [a, b] = layout.pages[0].placements
+  assert.ok(Math.abs(b.x - a.x - a.width - 10) < EPSILON || Math.abs(b.y - a.y - a.height - 10) < EPSILON)
+})
+
+test('large gaps create more pages instead of shrinking or overlapping prints', () => {
+  const layout = successful(input({ photos: photos(5), gap: 100 }))
+  assert.equal(layout.pages.length, 5)
+})
+
+test('non-numeric and negative gaps fail validation', () => {
+  for (const gap of [NaN, Infinity, -1]) assert.equal(calculateLayout(input({ gap })).ok, false)
+})
+
+for (const kind of ['size', 'count'] as const) {
+  test(`manual order is respected through all ${kind} pages with mixed source shapes`, () => {
+    const ordered = Array.from({ length: 23 }, (_, i) => ({ id: `ordered-${(i * 7) % 23}`, widthPx: 200 + i % 7 * 300, heightPx: 200 + i % 5 * 500 }))
+    const mode = kind === 'size'
+      ? { kind: 'size' as const, width: 60, height: 90, fit: 'natural' as const, arrangement: 'compact' as const }
+      : { kind: 'count' as const, count: 5 }
+    for (const autoRotate of [false, true]) {
+      const layout = successful(input({ photos: ordered, paper: { width: 148, height: 210 }, mode, autoRotate, preserveOrder: true }))
+      assert.deepEqual(layout.pages.flatMap(page => page.placements.map(p => p.photoId)), ordered.map(p => p.id))
+    }
+  })
+}

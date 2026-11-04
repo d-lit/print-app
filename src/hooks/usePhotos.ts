@@ -6,6 +6,7 @@ interface FileError { id: string; message: string }
 export function usePhotos() {
   const [entries, setEntries] = useState<PhotoEntry[]>([])
   const [errors, setErrors] = useState<FileError[]>([])
+  const [manuallyOrdered, setManuallyOrdered] = useState(false)
   const sources = useRef(new Map<string, string>())
   const alive = useRef(true)
 
@@ -31,6 +32,21 @@ export function usePhotos() {
     sources.current.clear()
     setEntries([])
     setErrors([])
+    setManuallyOrdered(false)
+  }, [])
+
+  const move = useCallback((id: string, direction: -1 | 1) => {
+    setEntries(current => {
+      const index = current.findIndex(photo => photo.id === id)
+      const target = index + direction
+      if (index < 0 || target < 0 || target >= current.length) return current
+      const reordered = [...current]
+      const moved = reordered[index]
+      reordered[index] = reordered[target]
+      reordered[target] = moved
+      return reordered
+    })
+    setManuallyOrdered(true)
   }, [])
 
   const addFiles = useCallback((files: File[]) => {
@@ -81,5 +97,5 @@ export function usePhotos() {
 
   const photos = useMemo(() => entries.filter((entry): entry is Photo => entry.status === 'ready'), [entries])
   const dismissError = (id: string) => setErrors(current => current.filter(error => error.id !== id))
-  return { entries, photos, loading: entries.length - photos.length, errors, addFiles, remove, clear, dismissError }
+  return { entries, photos, loading: entries.length - photos.length, errors, addFiles, remove, move, manuallyOrdered, clear, dismissError }
 }

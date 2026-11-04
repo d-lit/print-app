@@ -3,14 +3,16 @@ import { EPSILON } from './geometry.ts'
 import { packPage, rotationCount } from './pack.ts'
 import type { Slot } from './pack.ts'
 import { gridLayouts, visiblePhotoArea } from './grid.ts'
+import { naturalPrintSize } from './imageFit.ts'
 
 const positive = (n: number) => Number.isFinite(n) && n > 0
 
-function sizeSlots(photos: readonly LayoutPhoto[], width: number, height: number): Slot[] {
+function sizeSlots(photos: readonly LayoutPhoto[], width: number, height: number, natural: boolean): Slot[] {
   return photos.map((photo, order) => {
     const swap = photo.widthPx !== photo.heightPx &&
       (photo.widthPx > photo.heightPx) !== (width > height)
-    return { photoId: photo.id, width: swap ? height : width, height: swap ? width : height, order }
+    const frame = { width: swap ? height : width, height: swap ? width : height }
+    return { photoId: photo.id, ...(natural ? naturalPrintSize(photo, width, height) : frame), order }
   })
 }
 
@@ -30,7 +32,7 @@ function layoutAtOrientation(
 ): Layout | null {
   const base = { width, height, orientation: width <= height ? 'portrait' as const : 'landscape' as const }
   if (input.mode.kind === 'size') {
-    let slots = sizeSlots(input.photos, input.mode.width, input.mode.height)
+    let slots = sizeSlots(input.photos, input.mode.width, input.mode.height, input.mode.fit === 'natural')
     const printableWidth = width - 2 * margin
     const printableHeight = height - 2 * margin
     if (slots.some(s => !(
@@ -39,7 +41,7 @@ function layoutAtOrientation(
     ))) return null
     const pages: LayoutPage[] = []
     while (slots.length) {
-      const { placements, remaining } = packPage(slots, width, height, margin, gap, input.autoRotate)
+      const { placements, remaining } = packPage(slots, width, height, margin, gap, input.autoRotate, input.preserveOrder)
       if (!placements.length) return null
       pages.push({ placements })
       slots = remaining
@@ -52,7 +54,7 @@ function layoutAtOrientation(
     const pages: LayoutPage[] = []
     for (let i = 0; i < input.photos.length; i += count) {
       const slots = countSlots(input.photos.slice(i, i + count), longSide)
-      const result = packPage(slots, width, height, margin, gap, input.autoRotate)
+      const result = packPage(slots, width, height, margin, gap, input.autoRotate, input.preserveOrder)
       if (result.remaining.length) return null
       pages.push({ placements: result.placements })
     }
@@ -90,7 +92,7 @@ export function calculateLayout(input: LayoutInput): LayoutResult {
     (input.mode.kind === 'size'
       ? !positive(input.mode.width) || !positive(input.mode.height)
       : !Number.isInteger(input.mode.count) || input.mode.count < 1 || input.mode.count > 12)
-  if (invalid) return { ok: false, error: { code: 'invalid-input', message: 'Проверьте параметры: размеры должны быть больше нуля, количество — целым числом от 1 до 12.' } }
+  if (invalid) return { ok: false, error: { code: 'invalid-input', message: 'Проверьте параметры: размеры — больше нуля, зазор — число от 0 мм, количество — целое от 1 до 12.' } }
 
   const portraitWidth = Math.min(input.paper.width, input.paper.height)
   const portraitHeight = Math.max(input.paper.width, input.paper.height)
@@ -119,5 +121,9 @@ export function calculateLayout(input: LayoutInput): LayoutResult {
       ? 'Фото такого размера не помещаются с полями 5 мм. Уменьшите размер отпечатка или выберите бумагу больше.'
       : 'Не удалось разместить фотографии. Уменьшите количество на листе или выберите бумагу больше.',
   } }
-  return { ok: true, layout: candidates[0] }
+  return { ok: true, layout: {
+    ...candidates[0],
+    fit: input.mode.kind === 'size' ? input.mode.fit ?? 'contain' : 'contain',
+    imageAlignment: input.mode.kind === 'size' && input.mode.arrangement === 'compact' ? 'start' : 'center',
+  } }
 }
