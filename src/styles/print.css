@@ -1,0 +1,14 @@
+/* Kept mounted so originals can decode before the native print dialog opens. */
+@media screen {
+  .print-area { position: fixed; left: -10000px; top: 0; visibility: hidden; pointer-events: none; }
+}
+
+@media print {
+  :root { color-scheme: light; background: #fff; }
+  html, body, #root { margin: 0 !important; padding: 0 !important; min-width: 0 !important; width: auto !important; max-width: none !important; background: #fff !important; }
+  .app-shell { display: none !important; }
+  .print-area { display: block; position: static; visibility: visible; margin: 0; padding: 0; }
+  .print-area .sheet { margin: 0; padding: 0; border: 0; box-shadow: none; transform: none; break-inside: avoid; page-break-inside: avoid; break-after: page; page-break-after: always; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .print-area .sheet:last-child { break-after: auto; page-break-after: auto; }
+  .print-area .photo-slot { margin: 0; padding: 0; border: 0; }
+}

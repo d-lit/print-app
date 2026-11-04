@@ -3,10 +3,15 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
+    "test": "node --test --test-isolation=none src/layout/*.test.ts",
+    "test:watch": "node --test --test-isolation=none --watch src/layout/*.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {
